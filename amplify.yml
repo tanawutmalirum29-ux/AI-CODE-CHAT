@@ -4,14 +4,13 @@ frontend:
     preBuild:
       commands:
         - nvm use 22
-        - cat source/archive-*.b64 | base64 -d > source/ai-code-chat-source.zip
-        - mkdir -p app
-        - unzip -q source/ai-code-chat-source.zip -d app
-        - cd app && nvm use 22 && npm install
+        - npm install
     build:
       commands:
-        - cd app && nvm use 22 && npm run check && npm test && npm run build
+        - npm run check
+        - npm test
+        - npm run build
   artifacts:
-    baseDirectory: app/.amplify-hosting
+    baseDirectory: .amplify-hosting
     files:
       - '**/*'
