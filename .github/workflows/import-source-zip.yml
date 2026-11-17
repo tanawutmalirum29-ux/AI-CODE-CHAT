@@ -1,0 +1,105 @@
+name: Import uploaded source ZIP
+
+on:
+  push:
+    paths:
+      - ".payload/manifest.json"
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+
+      - name: Restore and validate ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import base64
+          import json
+          import pathlib
+          import shutil
+          import stat
+          import tempfile
+          import zipfile
+
+          root = pathlib.Path.cwd()
+          payload = root / ".payload"
+          manifest = json.loads((payload / "manifest.json").read_text())
+          count = int(manifest["chunks"])
+          if count < 1 or count > 20:
+              raise SystemExit("Invalid payload chunk count")
+
+          encoded = "".join(
+              (payload / f"chunk-{index:02d}.b64").read_text().strip()
+              for index in range(count)
+          )
+          archive_bytes = base64.b64decode(encoded, validate=True)
+
+          with tempfile.TemporaryDirectory(prefix="ai-code-chat-import-") as temp:
+              temp_path = pathlib.Path(temp)
+              archive_path = temp_path / "source.zip"
+              archive_path.write_bytes(archive_bytes)
+              if not zipfile.is_zipfile(archive_path):
+                  raise SystemExit("Uploaded payload is not a valid ZIP")
+
+              extract_root = temp_path / "source"
+              extract_root.mkdir()
+              with zipfile.ZipFile(archive_path) as archive:
+                  for info in archive.infolist():
+                      path = pathlib.PurePosixPath(info.filename)
+                      if path.is_absolute() or ".." in path.parts:
+                          raise SystemExit(f"Unsafe ZIP path: {info.filename}")
+                      if path.parts and path.parts[0] in {".git", ".payload"}:
+                          raise SystemExit(f"Reserved ZIP path: {info.filename}")
+                      if stat.S_ISLNK(info.external_attr >> 16):
+                          raise SystemExit(f"Symlink not allowed: {info.filename}")
+                  archive.extractall(extract_root)
+
+              items = list(extract_root.iterdir())
+              if not any(item.name == "server.js" for item in items):
+                  raise SystemExit("ZIP does not contain server.js at its root")
+              if not any(item.name == "package.json" for item in items):
+                  raise SystemExit("ZIP does not contain package.json at its root")
+
+              for item in root.iterdir():
+                  if item.name in {".git", ".github", ".payload"}:
+                      continue
+                  if item.is_dir():
+                      shutil.rmtree(item)
+                  else:
+                      item.unlink()
+
+              for item in items:
+                  destination = root / item.name
+                  if item.is_dir():
+                      shutil.copytree(item, destination, dirs_exist_ok=True)
+                  else:
+                      shutil.copy2(item, destination)
+
+          workflow_file = root / ".github" / "workflows" / "import-source-zip.yml"
+          workflow_file.unlink(missing_ok=True)
+          for directory in [workflow_file.parent, workflow_file.parent.parent]:
+              try:
+                  directory.rmdir()
+              except OSError:
+                  pass
+          shutil.rmtree(payload)
+          PY
+
+      - name: Commit imported source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Import AI Code Chat source ZIP with TLS fix [skip ci]"
+          git push origin HEAD:main
