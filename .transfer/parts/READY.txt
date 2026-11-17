@@ -1,1 +1,0 @@
-Validate and extract the staged source archive.
