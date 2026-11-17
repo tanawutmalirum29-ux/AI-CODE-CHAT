@@ -4,6 +4,7 @@ frontend:
     preBuild:
       commands:
         - nvm use 22
+        - cat source/archive-*.b64 | base64 -d > source/ai-code-chat-source.zip
         - mkdir -p app
         - unzip -q source/ai-code-chat-source.zip -d app
         - cd app && nvm use 22 && npm install
