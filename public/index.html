@@ -20,6 +20,7 @@
         <button class="nav-item active" data-page="chat"><span class="nav-icon">◉</span><span>AI Chat</span></button>
         <button class="nav-item" data-page="code"><span class="nav-icon">&lt;/&gt;</span><span>Code Workspace</span></button>
         <button class="nav-item" data-page="images"><span class="nav-icon">▧</span><span>Image Studio</span></button>
+        <button class="nav-item" data-page="video"><span class="nav-icon">▶</span><span>Video Studio</span></button>
       </nav>
       <div class="sidebar-bottom">
         <button class="nav-item" data-page="settings"><span class="nav-icon">⚙</span><span>Settings & API</span></button>
@@ -93,10 +94,15 @@
           <div class="mode-switch" role="tablist" aria-label="Image operation">
             <button class="mode-button active" data-image-mode="generate" role="tab" aria-selected="true">Text to Image</button>
             <button class="mode-button" data-image-mode="edit" role="tab" aria-selected="false">Image Editing</button>
+            <button class="mode-button" id="inpaint-mode" data-image-mode="inpaint" role="tab" aria-selected="false" hidden>Inpainting</button>
           </div>
           <div class="image-layout">
             <section class="card image-controls">
               <form id="image-form">
+                <div class="field-row">
+                  <label class="grow">Generation server<select id="image-backend"><option value="openuncensored">OpenUncensored API</option><option value="comfy">ComfyUI Server</option></select></label>
+                  <label class="grow" id="image-engine-wrap" hidden>Engine<select id="image-engine"></select></label>
+                </div>
                 <div class="field-row">
                   <label class="grow">Model<select id="image-model"></select></label>
                   <label>Size<select id="image-size"><option value="1024x1024">1:1 · Square</option><option value="1024x1536">2:3 · Portrait</option><option value="1536x1024">3:2 · Landscape</option><option value="1024x1792">9:16 · Tall</option><option value="1792x1024">16:9 · Wide</option><option value="512x512">512 · Fast</option></select></label>
@@ -106,18 +112,70 @@
                 <label for="negative-prompt" id="negative-label">Negative prompt <span class="muted">(optional)</span></label>
                 <textarea id="negative-prompt" rows="2" maxlength="3000" placeholder="Elements to avoid…"></textarea>
                 <div class="reference-upload" id="reference-wrap" hidden>
-                  <label for="reference-images">Reference images <span class="muted">· PNG, JPEG, WebP or GIF · up to 3</span></label>
-                  <input id="reference-images" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple>
+                  <label for="reference-images">Reference image <span class="muted" id="reference-help">· PNG, JPEG or WebP</span></label>
+                  <input id="reference-images" type="file" accept="image/png,image/jpeg,image/webp" multiple>
                   <div class="reference-preview" id="reference-preview"></div>
+                  <div class="inpaint-editor" id="inpaint-editor" hidden>
+                    <p class="muted">ระบายบริเวณที่ต้องการให้ AI แก้ไข สีแดงคือพื้นที่ที่จะสร้างใหม่</p>
+                    <div class="mask-editor"><img id="mask-source-preview" alt="Source image for inpainting"><canvas id="mask-canvas" aria-label="วาด mask บนภาพต้นแบบ"></canvas></div>
+                    <div class="field-row mask-tools">
+                      <label class="grow">Brush size <input id="mask-brush-size" type="range" min="8" max="120" value="42"></label>
+                      <button class="button subtle" type="button" id="mask-clear">Clear mask</button>
+                    </div>
+                  </div>
+                </div>
+                <div class="field-row" id="comfy-advanced" hidden>
+                  <label>Steps<input id="comfy-steps" type="number" min="1" max="60" value="24"></label>
+                  <label>CFG<input id="comfy-cfg" type="number" min="1" max="20" step="0.5" value="7"></label>
+                  <label>Seed<input id="comfy-seed" type="number" min="0" placeholder="Random"></label>
                 </div>
                 <label class="count-control" id="count-wrap">Number of images<select id="image-count"><option value="1">1 image</option><option value="2">2 images</option><option value="3">3 images</option><option value="4">4 images</option></select></label>
-                <button class="button primary full-width" id="image-submit" type="submit">Generate image <span>↗</span></button>
+                <div class="image-actions"><button class="button primary full-width" id="image-submit" type="submit">Generate image <span>↗</span></button><button class="button subtle" id="image-stop" type="button" hidden>Stop</button></div>
+                <div class="media-progress" id="image-progress" hidden><progress id="image-progress-bar" max="100"></progress><span id="image-progress-label">Waiting for ComfyUI…</span></div>
               </form>
-              <p class="security-note">การสร้างและแก้ภาพคิดเครดิตตามโมเดลและจำนวนภาพ ตรวจสอบราคาที่หน้า Provider ก่อนใช้งาน</p>
+              <p class="security-note">Inpainting ใช้ได้เมื่อเลือก ComfyUI และเซิร์ฟเวอร์ตรวจพบ node ที่จำเป็น ภาพต้นฉบับและ mask จะถูกอัปโหลดไปยัง ComfyUI ที่เลือก</p>
+              <p class="security-note">การสร้างผ่าน API คิดเครดิตตามโมเดลและจำนวนภาพ ตรวจสอบราคาที่หน้า Provider ก่อนใช้งาน</p>
             </section>
             <section class="card image-results">
               <div class="card-heading"><div><h2>Results</h2><p class="muted" id="image-result-meta">ภาพที่สร้างจะแสดงที่นี่</p></div></div>
               <div class="image-gallery" id="image-gallery"><div class="empty-state"><div class="empty-symbol">▧</div><h2>ยังไม่มีภาพ</h2><p>ใส่ Prompt แล้วเริ่มสร้างภาพได้เลย</p></div></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="page" id="page-video">
+          <div class="page-heading"><div><p class="eyebrow">GENERATIVE VIDEO</p><h1>Video Studio</h1><p class="muted">ส่ง Workflow ที่คุณติดตั้งไว้ใน ComfyUI แล้วควบคุม Prompt และภาพอ้างอิงจากหน้านี้</p></div></div>
+          <div class="notice"><strong>การรองรับขึ้นกับเซิร์ฟเวอร์จริง</strong><p>Video Studio ใช้ ComfyUI API workflow (ไฟล์ JSON แบบ Save API Format) ไม่ได้สมมติว่าโมเดลทุกตัวใช้ workflow เดียวกัน ระบบตรวจ node กับ /object_info ก่อนส่งงาน และจะปิดการสร้างเมื่อไม่มี video output node ที่รองรับ</p></div>
+          <div class="image-layout">
+            <section class="card image-controls">
+              <form id="video-form">
+                <label>ComfyUI Engine<select id="video-engine"><option value="">เลือก Engine</option></select></label>
+                <div class="engine-result" id="video-capability" aria-live="polite">กำลังโหลดสถานะ Engine…</div>
+                <label for="video-workflow">ComfyUI API workflow (.json)</label>
+                <input id="video-workflow" type="file" accept="application/json,.json" required>
+                <p class="security-note">ใช้ไฟล์ Workflow ที่เชื่อถือได้เท่านั้น เพราะ Custom Nodes ที่ติดตั้งบน ComfyUI จะทำงานตาม Workflow ที่ส่งเข้าไป</p>
+                <div class="field-row">
+                  <label class="grow">Positive prompt node<select id="video-prompt-node" disabled><option value="">นำเข้า Workflow ก่อน</option></select></label>
+                  <label class="grow">Negative prompt node<select id="video-negative-node" disabled><option value="">ไม่ใช้</option></select></label>
+                </div>
+                <label>Prompt</label>
+                <textarea id="video-prompt" rows="5" maxlength="8000" placeholder="บรรยายฉาก การเคลื่อนไหว และมุมกล้อง…" required></textarea>
+                <label>Negative prompt <span class="muted">(optional)</span></label>
+                <textarea id="video-negative" rows="2" maxlength="3000" placeholder="สิ่งที่ต้องการหลีกเลี่ยง…"></textarea>
+                <div class="reference-upload">
+                  <label for="video-reference">Starting frame / ภาพต้นแบบ <span class="muted">(optional)</span></label>
+                  <input id="video-reference" type="file" accept="image/png,image/jpeg,image/webp">
+                  <label>Image input node<select id="video-image-node" disabled><option value="">ไม่ใช้ภาพอ้างอิง</option></select></label>
+                  <div class="reference-preview" id="video-reference-preview"></div>
+                </div>
+                <button class="button primary full-width" id="video-submit" type="submit" disabled>Generate video ↗</button>
+                <button class="button subtle full-width" id="video-stop" type="button" hidden>Stop</button>
+                <div class="media-progress" id="video-progress" hidden><progress id="video-progress-bar"></progress><span id="video-progress-label">Waiting for ComfyUI…</span></div>
+              </form>
+            </section>
+            <section class="card image-results">
+              <div class="card-heading"><div><h2>Video results</h2><p class="muted" id="video-result-meta">วิดีโอที่สร้างจะแสดงที่นี่</p></div></div>
+              <div class="video-gallery" id="video-gallery"><div class="empty-state"><div class="empty-symbol">▶</div><h2>ยังไม่มีวิดีโอ</h2><p>นำเข้า Workflow ที่รองรับก่อนเริ่มสร้าง</p></div></div>
             </section>
           </div>
         </section>
@@ -144,11 +202,39 @@
               </form>
               <p class="provider-link"><a href="https://venice.ai/settings/api" target="_blank" rel="noreferrer">Get Venice API key ↗</a></p>
             </section>
+            <section class="card provider-card engine-card" id="engine-card">
+              <div class="provider-heading"><div class="provider-logo lu-logo">LU</div><div><h2>Locally Uncensored</h2><p class="muted">Chat via LU Local API · Image/Video via ComfyUI (HTTPS endpoint)</p></div><span class="provider-status" id="status-engine">No engine</span></div>
+              <p class="muted engine-hint">Amplify ไม่สามารถเข้าถึง localhost ของเครื่องคุณ ให้ใช้ URL แบบ HTTPS (tunnel หรือ GPU server) ที่มี token ป้องกัน</p>
+              <div class="engine-list" id="engine-list"></div>
+              <form class="key-form engine-form" id="engine-form" autocomplete="off">
+                <input type="hidden" id="engine-id">
+                <label for="engine-name">Name</label>
+                <input id="engine-name" maxlength="60" placeholder="My GPU engine" required>
+                <label for="engine-chat-url">Chat base URL (OpenAI-compatible, e.g. https://host/v1)</label>
+                <input id="engine-chat-url" type="url" inputmode="url" placeholder="https://engine.example.com/v1">
+                <label for="engine-chat-token">Chat token</label>
+                <input id="engine-chat-token" type="password" autocomplete="off" placeholder="Token">
+                <label for="engine-comfy-url">ComfyUI base URL (for Image/Video, optional)</label>
+                <input id="engine-comfy-url" type="url" inputmode="url" placeholder="https://comfy.example.com">
+                <label for="engine-comfy-token">ComfyUI token</label>
+                <input id="engine-comfy-token" type="password" autocomplete="off" placeholder="Token">
+                <div class="engine-row">
+                  <label>Chat timeout (s)<input id="engine-chat-timeout" type="number" min="5" max="600" value="120"></label>
+                  <label>ComfyUI timeout (s)<input id="engine-comfy-timeout" type="number" min="5" max="600" value="300"></label>
+                </div>
+                <div class="engine-actions">
+                  <button class="button subtle" type="button" id="engine-test">ทดสอบการเชื่อมต่อ</button>
+                  <button class="button primary" type="submit" id="engine-save">บันทึก Engine</button>
+                  <button class="button subtle" type="button" id="engine-reset" hidden>ยกเลิกการแก้ไข</button>
+                </div>
+                <div class="engine-result" id="engine-result" hidden></div>
+              </form>
+            </section>
           </div>
           <section class="card deployment-card">
             <h2>Server configuration</h2>
             <p class="muted">การใช้งานแบบ Production ต้องตั้งค่า PostgreSQL และคีย์เข้ารหัสใน AWS Amplify Environment Variables</p>
-            <div class="env-list"><code>DATABASE_URL</code><code>SESSION_SECRET</code><code>DATA_KEY</code><code>LOCAL_WORKSPACE_DIR=/tmp/ai-code-chat-workspaces</code></div>
+            <div class="env-list"><code>DATABASE_URL</code><code>SESSION_SECRET</code><code>DATA_KEY</code><code>LOCAL_WORKSPACE_DIR=/tmp/ai-code-chat-workspaces</code><code>LU_CHAT_BASE_URL</code><code>LU_CHAT_TOKEN</code><code>LU_COMFY_BASE_URL</code></div>
             <p class="security-note">ห้ามเปลี่ยน SESSION_SECRET หรือ DATA_KEY หลังเริ่มใช้งาน เพราะ Session และ API Keys ที่บันทึกไว้จะใช้ไม่ได้</p>
           </section>
         </section>
