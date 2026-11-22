@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "start": "node --env-file-if-exists=.env server.js",
-    "check": "node --check server.js && node --check lib/security.js && node --check lib/database.js && node --check lib/providers.js && node --check lib/workspaces.js && node --check public/app.js && node --check scripts/build.mjs",
+    "check": "node --check server.js && node --check lib/security.js && node --check lib/database.js && node --check lib/providers.js && node --check lib/workspaces.js && node --check lib/engines/net-guard.js && node --check lib/engines/chat-adapter.js && node --check lib/engines/health.js && node --check lib/engines/profiles.js && node --check lib/engines/comfy-adapter.js && node --check lib/engines/media-utils.js && node --check public/app.js && node --check scripts/build.mjs",
     "test": "node --test",
     "build": "node scripts/build.mjs"
   },

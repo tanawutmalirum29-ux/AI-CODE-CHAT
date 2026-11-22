@@ -187,3 +187,46 @@ label select:focus, label input:focus, textarea:focus { border-color: #6da6f6; b
   .card { padding: 15px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; } }
+
+.lu-logo { background: #2d3f2f; color: #bfe8c3; }
+.engine-hint { font-size: 11px; margin: -8px 0 14px; }
+.engine-list { display: grid; gap: 8px; margin-bottom: 16px; }
+.engine-item { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 9px 10px; background: var(--panel-soft); flex-wrap: wrap; }
+.engine-item strong { font-size: 12px; }
+.engine-item .muted { font-size: 10px; word-break: break-all; }
+.engine-item .engine-item-actions { margin-left: auto; display: flex; gap: 6px; }
+.engine-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.engine-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.engine-result { border: 1px solid var(--line); border-radius: 10px; padding: 10px; font-size: 11px; display: grid; gap: 6px; }
+.engine-result .ok { color: #78d5b5; }
+.engine-result .bad { color: var(--danger); }
+@media (max-width: 640px) { .engine-row { grid-template-columns: 1fr; } .engine-actions .button { flex: 1 1 100%; } }
+
+.image-actions { display: flex; gap: 8px; align-items: stretch; }
+.image-actions .full-width { flex: 1; }
+.media-progress { display: flex; flex-direction: column; gap: 7px; margin-top: 12px; color: var(--muted); font-size: 11px; }
+.media-progress progress { width: 100%; height: 8px; accent-color: var(--accent-strong); }
+.video-gallery { display: grid; grid-template-columns: 1fr; gap: 12px; }
+.video-gallery .empty-state { grid-column: 1/-1; }
+.result-video { border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: #0d131a; }
+.result-video video { display: block; width: 100%; max-height: 620px; background: #06090d; }
+.result-video a { display: block; padding: 10px; text-align: center; font-size: 11px; }
+#video-form > label, #video-form .field-row label { margin-bottom: 13px; }
+#video-form textarea { resize: vertical; line-height: 1.55; }
+#video-capability { line-height: 1.5; margin-bottom: 12px; }
+#video-workflow { margin: 6px 0 9px; width: 100%; color: var(--muted); font-size: 11px; }
+#video-form .reference-upload { margin-top: 12px; }
+@media (max-width: 700px) {
+  .image-actions { flex-direction: column; }
+  .image-actions .button { width: 100%; }
+  .video-gallery { grid-template-columns: 1fr; }
+}
+
+.inpaint-editor { margin-top: 13px; display: grid; gap: 9px; }
+.mask-editor { position: relative; width: 100%; max-width: 760px; overflow: hidden; border: 1px solid var(--line); border-radius: 9px; background: #080d13; }
+.mask-editor img { display: block; width: 100%; height: auto; }
+.mask-editor canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+.mask-tools { align-items: end; }
+.mask-tools label { min-width: 140px; }
+.mask-tools input[type="range"] { padding: 0; min-height: 24px; accent-color: var(--accent-strong); }
+@media (max-width: 700px) { .mask-tools { align-items: stretch; } }
