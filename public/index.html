@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d1117">
+  <meta name="description" content="Private AI workspace for uncensored chat, ZIP code editing and image generation.">
+  <title>AI Code Chat</title>
+  <link rel="stylesheet" href="/styles.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="/" aria-label="AI Code Chat home">
+        <span class="brand-mark">AI</span>
+        <span><strong>AI CODE CHAT</strong><small>Private creative workspace</small></span>
+      </a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <button class="nav-item active" data-page="chat"><span class="nav-icon">◉</span><span>AI Chat</span></button>
+        <button class="nav-item" data-page="code"><span class="nav-icon">&lt;/&gt;</span><span>Code Workspace</span></button>
+        <button class="nav-item" data-page="images"><span class="nav-icon">▧</span><span>Image Studio</span></button>
+      </nav>
+      <div class="sidebar-bottom">
+        <button class="nav-item" data-page="settings"><span class="nav-icon">⚙</span><span>Settings & API</span></button>
+        <div class="sidebar-note">Your API keys stay on the server and are encrypted before storage.</div>
+        <div class="version">ZIP-only workspace · v1.0</div>
+      </div>
+    </aside>
+
+    <div class="main-column">
+      <header class="topbar">
+        <div class="mobile-brand"><span class="brand-mark">AI</span><strong>AI CODE CHAT</strong></div>
+        <div class="topbar-title" id="page-title">AI Chat</div>
+        <div class="topbar-right"><span class="status-dot"></span><span id="server-status">Connecting</span></div>
+      </header>
+
+      <main class="content">
+        <section class="page active" id="page-chat">
+          <div class="page-heading">
+            <div><p class="eyebrow">CONVERSATION</p><h1>AI Chat</h1><p class="muted">เลือกโมเดลสนทนาและเปลี่ยน Provider ได้ตลอด</p></div>
+            <button class="button subtle" id="clear-chat">New chat</button>
+          </div>
+          <div class="control-strip">
+            <label>Provider<select id="chat-provider"><option value="openuncensored">OpenUncensored</option><option value="venice">Venice</option></select></label>
+            <label class="model-control">Model<select id="chat-model"><option>Loading models…</option></select></label>
+            <label class="compact-control">Temperature<input id="chat-temperature" type="number" min="0" max="1.5" step="0.1" value="0.7"></label>
+          </div>
+          <details class="system-settings">
+            <summary>System prompt / ปรับบุคลิก AI</summary>
+            <textarea id="chat-system" rows="3" placeholder="เช่น ตอบภาษาไทย กระชับ และยกตัวอย่างเมื่ออธิบายโค้ด"></textarea>
+          </details>
+          <div class="chat-panel">
+            <div class="chat-messages" id="chat-messages">
+              <div class="empty-state" id="chat-empty"><div class="empty-symbol">✳</div><h2>เริ่มบทสนทนา</h2><p>ตั้งค่า API Key ใน Settings แล้วเลือกโมเดลที่ต้องการ</p></div>
+            </div>
+            <form id="chat-form" class="chat-composer">
+              <textarea id="chat-input" rows="2" maxlength="12000" placeholder="พิมพ์ข้อความที่ต้องการถาม…" required></textarea>
+              <div class="composer-footer"><span class="muted">Enter เพื่อส่ง · Shift + Enter เพื่อขึ้นบรรทัดใหม่</span><button class="button primary" type="submit" id="chat-send">ส่งข้อความ <span>↗</span></button></div>
+            </form>
+          </div>
+        </section>
+
+        <section class="page" id="page-code">
+          <div class="page-heading"><div><p class="eyebrow">ZIP WORKSPACE</p><h1>Code Workspace</h1><p class="muted">อัปโหลด ZIP ให้ AI อ่านและแก้ไฟล์ แล้วดาวน์โหลดโปรเจกต์กลับ</p></div></div>
+          <div class="workspace-upload card">
+            <div class="upload-symbol">ZIP</div>
+            <div class="upload-copy"><strong>Upload project ZIP</strong><p>ขนาดไม่เกิน 40 MB · แตกไฟล์ได้สูงสุด 100 MB</p></div>
+            <form id="zip-form" class="upload-form"><input id="zip-file" type="file" accept=".zip,application/zip" required><button class="button primary" type="submit">อัปโหลดโปรเจกต์</button></form>
+          </div>
+          <div class="workspace-grid">
+            <section class="card file-card">
+              <div class="card-heading"><div><h2>Project files</h2><p class="muted" id="workspace-meta">ยังไม่มีโปรเจกต์</p></div><button class="button subtle small" id="download-zip" disabled>Download ZIP ↓</button></div>
+              <div class="file-tree" id="file-tree"><div class="empty-inline">อัปโหลด ZIP เพื่อเริ่มต้น</div></div>
+            </section>
+            <section class="card edit-card">
+              <div class="card-heading"><div><h2>AI Developer</h2><p class="muted">สั่งแก้ไขโปรเจกต์ด้วยภาษาธรรมชาติ</p></div><span class="ai-tag">AI EDIT</span></div>
+              <label>Provider<select id="code-provider"><option value="openuncensored">OpenUncensored</option><option value="venice">Venice</option></select></label>
+              <label>Model<select id="code-model"><option>Loading models…</option></select></label>
+              <form id="edit-form">
+                <label for="edit-instruction">สิ่งที่ต้องการให้แก้</label>
+                <textarea id="edit-instruction" rows="7" maxlength="8000" placeholder="เช่น ปรับหน้า Dashboard ให้รองรับมือถือ และเพิ่มตัวกรองข้อมูล…" required></textarea>
+                <button class="button primary full-width" id="edit-submit" type="submit" disabled>ให้ AI แก้ไขโปรเจกต์ <span>↗</span></button>
+              </form>
+              <p class="security-note">AI จะไม่อ่านไฟล์ .env, credentials หรือโฟลเดอร์ node_modules และระบบจะไม่รันคำสั่งใน ZIP อัตโนมัติ</p>
+              <div class="change-summary" id="change-summary" hidden></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="page" id="page-images">
+          <div class="page-heading"><div><p class="eyebrow">GENERATIVE MEDIA</p><h1>Image Studio</h1><p class="muted">สร้างภาพใหม่หรือแก้ภาพต้นฉบับด้วยโมเดลภาพ</p></div></div>
+          <div class="mode-switch" role="tablist" aria-label="Image operation">
+            <button class="mode-button active" data-image-mode="generate" role="tab" aria-selected="true">Text to Image</button>
+            <button class="mode-button" data-image-mode="edit" role="tab" aria-selected="false">Image Editing</button>
+          </div>
+          <div class="image-layout">
+            <section class="card image-controls">
+              <form id="image-form">
+                <div class="field-row">
+                  <label class="grow">Model<select id="image-model"></select></label>
+                  <label>Size<select id="image-size"><option value="1024x1024">1:1 · Square</option><option value="1024x1536">2:3 · Portrait</option><option value="1536x1024">3:2 · Landscape</option><option value="1024x1792">9:16 · Tall</option><option value="1792x1024">16:9 · Wide</option><option value="512x512">512 · Fast</option></select></label>
+                </div>
+                <label for="image-prompt">Prompt</label>
+                <textarea id="image-prompt" rows="6" maxlength="8000" placeholder="Describe the image you want to create…" required></textarea>
+                <label for="negative-prompt" id="negative-label">Negative prompt <span class="muted">(optional)</span></label>
+                <textarea id="negative-prompt" rows="2" maxlength="3000" placeholder="Elements to avoid…"></textarea>
+                <div class="reference-upload" id="reference-wrap" hidden>
+                  <label for="reference-images">Reference images <span class="muted">· PNG, JPEG, WebP or GIF · up to 3</span></label>
+                  <input id="reference-images" type="file" accept="image/png,image/jpeg,image/webp,image/gif" multiple>
+                  <div class="reference-preview" id="reference-preview"></div>
+                </div>
+                <label class="count-control" id="count-wrap">Number of images<select id="image-count"><option value="1">1 image</option><option value="2">2 images</option><option value="3">3 images</option><option value="4">4 images</option></select></label>
+                <button class="button primary full-width" id="image-submit" type="submit">Generate image <span>↗</span></button>
+              </form>
+              <p class="security-note">การสร้างและแก้ภาพคิดเครดิตตามโมเดลและจำนวนภาพ ตรวจสอบราคาที่หน้า Provider ก่อนใช้งาน</p>
+            </section>
+            <section class="card image-results">
+              <div class="card-heading"><div><h2>Results</h2><p class="muted" id="image-result-meta">ภาพที่สร้างจะแสดงที่นี่</p></div></div>
+              <div class="image-gallery" id="image-gallery"><div class="empty-state"><div class="empty-symbol">▧</div><h2>ยังไม่มีภาพ</h2><p>ใส่ Prompt แล้วเริ่มสร้างภาพได้เลย</p></div></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="page" id="page-settings">
+          <div class="page-heading"><div><p class="eyebrow">CONNECTIONS</p><h1>Settings & API</h1><p class="muted">เพิ่ม API Key ของ Provider ที่ต้องการใช้งาน</p></div></div>
+          <div class="notice"><strong>ความเป็นส่วนตัว</strong><p>API Key ถูกส่งไปยังเซิร์ฟเวอร์โดยตรง เข้ารหัส AES-256-GCM ก่อนบันทึกใน PostgreSQL และจะไม่ถูกส่งกลับไปยัง Browser อีกครั้ง</p></div>
+          <div class="settings-grid">
+            <section class="card provider-card" data-provider-card="openuncensored">
+              <div class="provider-heading"><div class="provider-logo ou-logo">OU</div><div><h2>OpenUncensored</h2><p class="muted">Chat · Image generation · Image editing</p></div><span class="provider-status" id="status-openuncensored">Not connected</span></div>
+              <form class="key-form" data-provider-key="openuncensored">
+                <label for="key-openuncensored">API Key</label>
+                <input id="key-openuncensored" data-api-key="openuncensored" type="password" autocomplete="off" placeholder="ou-…" required>
+                <button class="button primary" type="submit">บันทึก API Key</button>
+              </form>
+              <p class="provider-link"><a href="https://openuncensored.com/credits" target="_blank" rel="noreferrer">Get API key and add credits ↗</a></p>
+            </section>
+            <section class="card provider-card" data-provider-card="venice">
+              <div class="provider-heading"><div class="provider-logo venice-logo">V</div><div><h2>Venice</h2><p class="muted">Chat · Text models</p></div><span class="provider-status" id="status-venice">Not connected</span></div>
+              <form class="key-form" data-provider-key="venice">
+                <label for="key-venice">API Key</label>
+                <input id="key-venice" data-api-key="venice" type="password" autocomplete="off" placeholder="Paste Venice API key…" required>
+                <button class="button primary" type="submit">บันทึก API Key</button>
+              </form>
+              <p class="provider-link"><a href="https://venice.ai/settings/api" target="_blank" rel="noreferrer">Get Venice API key ↗</a></p>
+            </section>
+          </div>
+          <section class="card deployment-card">
+            <h2>Server configuration</h2>
+            <p class="muted">การใช้งานแบบ Production ต้องตั้งค่า PostgreSQL และคีย์เข้ารหัสใน AWS Amplify Environment Variables</p>
+            <div class="env-list"><code>DATABASE_URL</code><code>SESSION_SECRET</code><code>DATA_KEY</code><code>LOCAL_WORKSPACE_DIR=/tmp/ai-code-chat-workspaces</code></div>
+            <p class="security-note">ห้ามเปลี่ยน SESSION_SECRET หรือ DATA_KEY หลังเริ่มใช้งาน เพราะ Session และ API Keys ที่บันทึกไว้จะใช้ไม่ได้</p>
+          </section>
+        </section>
+      </main>
+      <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+</body>
+</html>
