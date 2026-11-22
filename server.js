@@ -11,7 +11,7 @@ import pg from "pg";
 import { encryptSecret } from "./lib/security.js";
 import { initDatabase } from "./lib/database.js";
 import { PROVIDERS, IMAGE_MODELS, getProviderKey, saveProviderKey, deleteProviderKey, providerStatuses, listProviderModels, createChatCompletion, generateImages, editImages } from "./lib/providers.js";
-import { createWorkspace, getWorkspace, listWorkspaceFiles, buildWorkspaceContext, applyWorkspaceChanges, archiveWorkspace } from "./lib/workspaces.js";
+import { createWorkspace, getWorkspace, listWorkspaceFiles, buildWorkspaceContext, applyWorkspaceChanges, archiveWorkspace, persistWorkspace } from "./lib/workspaces.js";
 
 const { Pool } = pg;
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -155,15 +155,16 @@ app.post("/api/images/edit", rateLimit({ windowMs: 60000, limit: 8, standardHead
 app.post("/api/workspaces", zipUpload.single("archive"), wrap(async (req, res) => {
   const file = req.file;
   if (!file || file.buffer.length < 4 || file.buffer[0] !== 0x50 || file.buffer[1] !== 0x4b) return res.status(400).json({ error: "Upload a valid project ZIP file." });
-  res.status(201).json(await createWorkspace(sid(req), file.buffer, file.originalname));
+  if (!pool) return res.status(503).json({ error: "PostgreSQL is required for persistent ZIP workspaces. Configure DATABASE_URL." });
+  res.status(201).json(await createWorkspace(pool, sid(req), file.buffer, file.originalname));
 }));
 app.get("/api/workspaces/:id", wrap(async (req, res) => {
-  const workspace = getWorkspace(sid(req), req.params.id);
+  const workspace = await getWorkspace(pool, sid(req), req.params.id);
   if (!workspace) return res.status(404).json({ error: "Workspace expired. Upload the ZIP again." });
   res.json({ id: workspace.id, files: await listWorkspaceFiles(workspace), expiresInHours: 6 });
 }));
 app.post("/api/workspaces/:id/edit", rateLimit({ windowMs: 60000, limit: 20, standardHeaders: true, legacyHeaders: false }), wrap(async (req, res) => {
-  const workspace = getWorkspace(sid(req), req.params.id);
+  const workspace = await getWorkspace(pool, sid(req), req.params.id);
   if (!workspace) return res.status(404).json({ error: "Workspace expired. Upload the ZIP again." });
   const provider = req.body.provider || "openuncensored";
   if (!providerOk(provider, res)) return;
@@ -189,10 +190,11 @@ app.post("/api/workspaces/:id/edit", rateLimit({ windowMs: 60000, limit: 20, sta
     parsed = JSON.parse(raw.trim());
   } catch { return res.status(502).json({ error: "The model did not return valid JSON file changes. Try another model." }); }
   const changedFiles = await applyWorkspaceChanges(workspace, parsed.changes);
-  res.json({ changedFiles, files: await listWorkspaceFiles(workspace), model: result.model, usage: result.usage, note: "Files changed. Project commands were not run." });
+  await persistWorkspace(pool, workspace);
+  res.json({ changedFiles, files: await listWorkspaceFiles(workspace), model: result.model, usage: result.usage, note: "Files changed and saved to PostgreSQL. Project commands were not run." });
 }));
 app.get("/api/workspaces/:id/download", wrap(async (req, res) => {
-  const workspace = getWorkspace(sid(req), req.params.id);
+  const workspace = await getWorkspace(pool, sid(req), req.params.id);
   if (!workspace) return res.status(404).json({ error: "Workspace expired. Upload the ZIP again." });
   res.setHeader("Content-Type", "application/zip");
   res.setHeader("Content-Disposition", 'attachment; filename="ai-code-chat-project.zip"');
